@@ -6,6 +6,7 @@ use App\Http\Controllers\API\MediaMasterApiController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\ProductApiController;
 use App\Http\Controllers\API\RegisterController;
+use App\Http\Controllers\Api\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +31,7 @@ Route::post('/login', [RegisterController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/products', [ProductController::class, 'store']);
 });
-
+Route::middleware('auth:sanctum')->post('/logout', [RegisterController::class, 'logout']);
 // Route::post('login', [LoginController::class, 'index']);
 
 // Route::post('country-list', [ListingController::class, 'countryList']);

@@ -202,6 +202,25 @@ public function login(Request $request)
     ], 200);
 }
 
+public function logout(Request $request)
+{
+    try {
+        // Revoke the current token
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Logout successful'
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Something went wrong during logout',
+            'error'   => $e->getMessage()
+        ], 500);
+    }
+}
 
 
 
