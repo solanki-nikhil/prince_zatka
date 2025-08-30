@@ -7,6 +7,9 @@ use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\ProductApiController;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\WarrantyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +30,24 @@ Route::post('/login', [RegisterController::class, 'login']);
 // Route::middleware('auth:sanctum')->get('/profile', function (Request $request) {
 //     return $request->user()->load('profile');
 // });
+
+
+Route::get('/products', [ProductController::class, 'index']);
+
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'store']);
+    Route::put('/cart/{id}', [CartController::class, 'update']);
+    Route::delete('/cart/{id}', [CartController::class, 'destroy']);
+
+    Route::post('/check-warranty', [WarrantyController::class, 'checkWarranty']);
+});
+
+
+
+Route::get('/media', [MediaController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/products', [ProductController::class, 'store']);
