@@ -195,10 +195,12 @@ public function login(Request $request)
     return response()->json([
         'status'  => true,
         'message' => 'Login successful',
-        'data'    => [
-            'user'  => $user,
-            'token' => $token
-        ]
+        'data'    => $user,
+        'token'   => $token
+        // 'data'    => [
+        //     'user'  => $user,
+        //     'token' => $token
+        // ]
     ], 200);
 }
 

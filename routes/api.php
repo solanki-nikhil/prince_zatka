@@ -1,17 +1,19 @@
 <?php
 
-use App\Http\Controllers\API\ListingController;
-use App\Http\Controllers\API\LoginController;
-use App\Http\Controllers\API\MediaMasterApiController;
-use App\Http\Controllers\API\OrderController;
-use App\Http\Controllers\API\ProductApiController;
-use App\Http\Controllers\API\RegisterController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\MediaController;
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\WarrantyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\API\LoginController;
+use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\API\OrderController;
+use App\Http\Controllers\API\ListingController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\API\RegisterController;
+use App\Http\Controllers\Api\WarrantyController;
+use App\Http\Controllers\API\ProductApiController;
+use App\Http\Controllers\Api\SerialNoController;
+use App\Http\Controllers\Api\Auth\ProfileController;
+use App\Http\Controllers\API\MediaMasterApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,24 +36,23 @@ Route::post('/login', [RegisterController::class, 'login']);
 
 Route::get('/products', [ProductController::class, 'index']);
 
-
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
     Route::put('/cart/{id}', [CartController::class, 'update']);
     Route::delete('/cart/{id}', [CartController::class, 'destroy']);
 
-    Route::post('/check-warranty', [WarrantyController::class, 'checkWarranty']);
+    Route::post('/warranty/check', [WarrantyController::class, 'checkWarranty']);
+    
+
+    Route::get('/serialno/rejected', [SerialNoController::class, 'rejectedList']);
+
+
+    Route::put('/profile/update', [ProfileController::class, 'updateProfile']);
 });
-
-
 
 Route::get('/media', [MediaController::class, 'index']);
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/products', [ProductController::class, 'store']);
-});
 Route::middleware('auth:sanctum')->post('/logout', [RegisterController::class, 'logout']);
 // Route::post('login', [LoginController::class, 'index']);
 

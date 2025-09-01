@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\SerialNo;
+use App\Models\WarrantyHistory;
 
 class WarrantyController extends Controller
 {
@@ -14,46 +15,38 @@ class WarrantyController extends Controller
             'serial_number' => 'required|string'
         ]);
 
-        $serialNumber = $request->serial_number;
+        // Find serial number
+        $serial = Serialno::with(['product.category'])->where('sn', $request->serial_number)->first();
 
-        $warranty = SerialNo::with(['product.category'])
-            ->where('sn', $serialNumber)
-            ->first();
-
-        if (!$warranty) {
+        if (!$serial) {
             return response()->json([
-                'status'  => false,
-                'message' => 'Serial Number not found'
+                'status' => false,
+                'message' => 'Serial number not found'
             ], 404);
         }
 
-        if ($warranty->valid_to) {
-            return response()->json([
-                'status'  => true,
-                'message' => 'Serial Number is assigned',
-                'data'    => [
-                    'serial_id' => $warranty->id,
-                    'serial_no' => $warranty->sn,
-                    'product'   => $warranty->product->product_name ?? null,
-                    'category'  => $warranty->product->category->category_name ?? null,
-                    'customer'  => [
-                        'name'     => $warranty->cus_name,
-                        'village'  => $warranty->cus_village,
-                        'mobile'   => $warranty->cus_mobile,
-                    ],
-                    'warranty_date' => $warranty->valid_to
-                ]
-            ], 200);
-        }
+        // Get warranty history
+        $warrantyHistories = WarrantyHistory::where('serial_no_id', $serial->id)->get();
 
         return response()->json([
-            'status'  => true,
-            'message' => 'Serial Number is available',
-            'data'    => [
-                'serial_id' => $warranty->id,
-                'serial_no' => $warranty->sn,
-                'product'   => $warranty->product->product_name ?? null,
-                'category'  => $warranty->product->category->category_name ?? null
+            'status' => true,
+            'message' => 'Warranty details found',
+            'data' => [
+                'serial' => [
+                    'id' => $serial->id,
+                    'sn' => $serial->sn,
+                    'valid_from' => $serial->valid_from,
+                    'valid_to' => $serial->valid_to,
+                    'status' => $serial->status,
+                    'is_replace' => $serial->is_replace,
+                    'is_reject' => $serial->is_reject,
+                ],
+                'product' => [
+                    'id' => $serial->product->id ?? null,
+                    'name' => $serial->product->name ?? null,
+                    'category' => $serial->product->category->name ?? null,
+                ],
+                'warranty_history' => $warrantyHistories
             ]
         ], 200);
     }
