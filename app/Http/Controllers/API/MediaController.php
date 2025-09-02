@@ -15,11 +15,7 @@ class MediaController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Convert binary image to Base64 (if you store image as binary in DB)
-        $media->transform(function ($item) {
-            $item->image = $item->image ? base64_encode($item->image) : null;
-            return $item;
-        });
+        
 
         return response()->json([
             'status'  => true,

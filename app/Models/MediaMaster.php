@@ -12,4 +12,13 @@ class MediaMaster extends Model
 
     protected $table = 'media_masters';
     protected $fillable = ['id','title','description','image','link'];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image
+            ? url('upload/media/' . rawurlencode($this->image))
+            : null;
+    }
 }

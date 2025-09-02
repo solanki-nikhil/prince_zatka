@@ -1,0 +1,9 @@
+$table->tinyInteger('user_type')->default(0); // 0=self,1=other
+$table->tinyInteger('order_by')->default(1); // 0=customer,1=admin
+
+modifi orders table
+
+if show this error 
+
+
+SQL: insert into orders (user_id, user_type, order_by, order_id, name, mobile, address, total_pices, total_box, total_amount, order_status, updated_at, created_at) values (179, 0, 0, PZ_000031, Raja Ram, 9876543210, Bangalore, 0, 0, 0, 1, 2025-09-02 14:47:20, 2025-09-02 14:47:20))

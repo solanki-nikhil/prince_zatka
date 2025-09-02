@@ -28,12 +28,6 @@ use App\Http\Controllers\API\MediaMasterApiController;
 
 Route::post('/register', [RegisterController::class, 'signup']);
 Route::post('/login', [RegisterController::class, 'login']);
-
-// Route::middleware('auth:sanctum')->get('/profile', function (Request $request) {
-//     return $request->user()->load('profile');
-// });
-
-
 Route::get('/products', [ProductController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -42,18 +36,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{id}', [CartController::class, 'update']);
     Route::delete('/cart/{id}', [CartController::class, 'destroy']);
 
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::put('/orders/{id}', [OrderController::class, 'update']);
+    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+    Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
+
     Route::post('/warranty/check', [WarrantyController::class, 'checkWarranty']);
-    
-
     Route::get('/serialno/rejected', [SerialNoController::class, 'rejectedList']);
-
-
     Route::put('/profile/update', [ProfileController::class, 'updateProfile']);
 });
 
 Route::get('/media', [MediaController::class, 'index']);
-
 Route::middleware('auth:sanctum')->post('/logout', [RegisterController::class, 'logout']);
+
+
 // Route::post('login', [LoginController::class, 'index']);
 
 // Route::post('country-list', [ListingController::class, 'countryList']);
