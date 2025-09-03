@@ -27,74 +27,80 @@ class OrderController extends Controller
 
     // Create order from cart
     public function store(Request $request)
-    {
-        $user = Auth::user();
-        $carts = Cart::with('product')->where('user_id', $user->id)->get();
+{
+    $user = Auth::user();
+    $carts = Cart::with('product')->where('user_id', $user->id)->get();
 
-        if ($carts->isEmpty()) {
-            return response()->json(['status' => false, 'message' => 'Cart is empty'], 400);
-        }
-
-        DB::beginTransaction();
-        try {
-            $order = Order::create([
-                'user_id'      => $user->id,
-                'user_type'    => 0,
-                'order_by'     => 0,
-                'order_id'     => $this->generateOrderId(),
-                'name'         => $user->name,
-                'mobile'       => $user->mobile,
-                'address'      => $request->address ?? $user->profile->address,
-                'total_pices'  => 0,
-                'total_box'    => 0,
-                'total_amount' => 0,
-                'order_status' => 1 // pending
-            ]);
-
-            $totalPieces = 0;
-            $totalBox = 0;
-            $totalAmount = 0;
-
-            foreach ($carts as $cart) {
-                $perBox = $cart->product->per_box_pices ?? 1;
-                $pieces = $cart->quantity * $perBox;
-                $amount = $cart->product->price ?? 0;
-                $lineTotal = $pieces * $amount;
-
-                OrderTransection::create([
-                    'order_id'      => $order->id,
-                    'category_id'   => $cart->product->category_id ?? null,
-                    'sub_category_id' => $cart->product->sub_category_id ?? 0,
-                    'product_id'    => $cart->product_id,
-                    'box'           => $cart->quantity,
-                    'amount'        => $amount,
-                    'pices'         => $pieces,
-                    'per_box_pices' => $perBox,
-                    'total_amount'  => $lineTotal,
-                ]);
-
-                $totalPieces += $pieces;
-                $totalBox += $cart->quantity;
-                $totalAmount += $lineTotal;
-            }
-
-            $order->update([
-                'total_pices'  => $totalPieces,
-                'total_box'    => $totalBox,
-                'total_amount' => $totalAmount
-            ]);
-
-            // clear cart
-            Cart::where('user_id', $user->id)->delete();
-
-            DB::commit();
-            return response()->json(['status' => true, 'message' => 'Order created', 'data' => $order->load('orderTransection')], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['status' => false, 'message' => 'Error creating order', 'error' => $e->getMessage()], 500);
-        }
+    if ($carts->isEmpty()) {
+        return response()->json(['status' => false, 'message' => 'Cart is empty'], 400);
     }
+
+    DB::beginTransaction();
+    try {
+        // If address provided, update user profile also
+        $address = $request->address ?? $user->profile->address;
+        if ($request->filled('address') && $user->profile) {
+            $user->profile->update(['address' => $request->address]);
+        }
+
+        $order = Order::create([
+            'user_id'      => $user->id,
+            'user_type'    => 0,
+            'order_by'     => 0,
+            'order_id'     => $this->generateOrderId(),
+            'name'         => $user->name,
+            'mobile'       => $user->mobile,
+            'address'      => $address,
+            'total_pices'  => 0,
+            'total_box'    => 0,
+            'total_amount' => 0,
+            'order_status' => 1 // pending
+        ]);
+
+        $totalPieces = 0;
+        $totalBox = 0;
+        $totalAmount = 0;
+
+        foreach ($carts as $cart) {
+            $perBox = $cart->product->per_box_pices ?? 1;
+            $pieces = $cart->quantity * $perBox;
+            $amount = $cart->product->price ?? 0;
+            $lineTotal = $pieces * $amount;
+
+            OrderTransection::create([
+                'order_id'        => $order->id,
+                'category_id'     => $cart->product->category_id ?? null,
+                'sub_category_id' => $cart->product->sub_category_id ?? 0,
+                'product_id'      => $cart->product_id,
+                'box'             => $cart->quantity,
+                'amount'          => $amount,
+                'pices'           => $pieces,
+                'per_box_pices'   => $perBox,
+                'total_amount'    => $lineTotal,
+            ]);
+
+            $totalPieces += $pieces;
+            $totalBox += $cart->quantity;
+            $totalAmount += $lineTotal;
+        }
+
+        $order->update([
+            'total_pices'  => $totalPieces,
+            'total_box'    => $totalBox,
+            'total_amount' => $totalAmount
+        ]);
+
+        // clear cart
+        Cart::where('user_id', $user->id)->delete();
+
+        DB::commit();
+        return response()->json(['status' => true, 'message' => 'Order created', 'data' => $order->load('orderTransection')], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['status' => false, 'message' => 'Error creating order', 'error' => $e->getMessage()], 500);
+    }
+}
 
     // List all orders of user
     public function index()
@@ -108,33 +114,57 @@ class OrderController extends Controller
     }
 
     // Update order only if pending
-    public function update(Request $request, $id)
-    {
-        $order = Order::where('id',$id)->where('user_id',Auth::id())->first();
-        if (!$order) return response()->json(['status'=>false,'message'=>'Order not found'],404);
+   public function update(Request $request, $id)
+{
+    $order = Order::where('id',$id)->where('user_id',Auth::id())->first();
+    if (!$order) return response()->json(['status'=>false,'message'=>'Order not found'],404);
 
-        if ($order->order_status != 1) {
-            return response()->json(['status'=>false,'message'=>'Only pending orders can be updated'],403);
-        }
-
-        $order->update($request->only(['address','remarks']));
-
-        return response()->json(['status'=>true,'message'=>'Order updated','data'=>$order]);
+    if ($order->order_status != 1) {
+        return response()->json(['status'=>false,'message'=>'Only pending orders can be updated'],403);
     }
 
-    // Cancel order
-    public function cancel($id)
-    {
-        $order = Order::where('id',$id)->where('user_id',Auth::id())->first();
-        if (!$order) return response()->json(['status'=>false,'message'=>'Order not found'],404);
-
-        if ($order->order_status != 1) {
-            return response()->json(['status'=>false,'message'=>'Only pending orders can be cancelled'],403);
+    // If new address given, update in profile also
+    if ($request->filled('address')) {
+        $order->update(['address' => $request->address]);
+        if (Auth::user()->profile) {
+            Auth::user()->profile->update(['address' => $request->address]);
         }
-
-        $order->update(['order_status'=>3]); // 3=reject/cancelled
-        return response()->json(['status'=>true,'message'=>'Order cancelled']);
     }
+
+    // remarks removed (not saved)
+    
+    return response()->json(['status'=>true,'message'=>'Order updated','data'=>$order]);
+}
+
+    // Cancel order with remark
+public function cancel(Request $request, $id)
+{
+    $order = Order::where('id', $id)
+        ->where('user_id', Auth::id())
+        ->first();
+
+    if (!$order) {
+        return response()->json(['status' => false, 'message' => 'Order not found'], 404);
+    }
+
+    if ($order->order_status != 1) {
+        return response()->json(['status' => false, 'message' => 'Only pending orders can be cancelled'], 403);
+    }
+
+    $remark = $request->remark ?? 'Cancelled by user'; // default remark
+
+    $order->update([
+        'order_status' => 3, // 3 = reject/cancelled
+        'remark'       => $remark
+    ]);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Order cancelled',
+        'data'    => $order
+    ]);
+}
+
 
     // Delete order (soft delete)
     public function destroy($id)
