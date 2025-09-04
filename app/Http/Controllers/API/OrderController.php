@@ -151,11 +151,11 @@ public function cancel(Request $request, $id)
         return response()->json(['status' => false, 'message' => 'Only pending orders can be cancelled'], 403);
     }
 
-    $remark = $request->remark ?? 'Cancelled by user'; // default remark
+    // $remark = $request->remark ?? 'Cancelled by user'; // default remark
 
     $order->update([
         'order_status' => 3, // 3 = reject/cancelled
-        'remark'       => $remark
+        'remarks'      => $request->remarks ?? null, // save remarks in remarks column
     ]);
 
     return response()->json([

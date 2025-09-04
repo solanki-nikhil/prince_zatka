@@ -138,7 +138,7 @@ class RegisterController extends Controller
 
             return response()->json([
                 'status'  => true,
-                'message' => 'User Registered Successfully',
+                'message' => 'User Registered Successfully',                                                                                                    
                 'data'    => $user->load('profile') // include profile in response
             ], 201);
 
@@ -173,6 +173,19 @@ public function login(Request $request)
 
     // Check user
     $user = User::where('mobile', $request->mobile)->first();
+
+     // Check if user is active
+    // if ($user->status !== '1') {
+    //     return response()->json([
+    //         'status'  => false,
+    //         'message' => match($user->status) {
+    //             '0' => 'Your account is pending approval.',
+    //             '2' => 'Your account has been blocked.',
+    //             '3' => 'Your account has been rejected.',
+    //             default => 'Your account is not active.'
+    //         }
+    //     ], 403);
+    // }
 
     if (!$user) {
         return response()->json([
