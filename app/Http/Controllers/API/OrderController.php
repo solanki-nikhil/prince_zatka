@@ -116,25 +116,29 @@ class OrderController extends Controller
     // Update order only if pending
    public function update(Request $request, $id)
 {
-    $order = Order::where('id',$id)->where('user_id',Auth::id())->first();
-    if (!$order) return response()->json(['status'=>false,'message'=>'Order not found'],404);
+    $order = Order::where('id', $id)
+        ->where('user_id', Auth::id())
+        ->first();
 
-    if ($order->order_status != 1) {
-        return response()->json(['status'=>false,'message'=>'Only pending orders can be updated'],403);
+    if (!$order) {
+        return response()->json(['status' => false, 'message' => 'Order not found'], 404);
     }
 
-    // If new address given, update in profile also
-    if ($request->filled('address')) {
-        $order->update(['address' => $request->address]);
-        if (Auth::user()->profile) {
-            Auth::user()->profile->update(['address' => $request->address]);
-        }
+    // allow update only if status = pending (1) or confirm (2)
+    if (!in_array($order->order_status, [1, 2])) {
+        return response()->json(['status' => false, 'message' => 'Only pending or confirmed orders can be updated'], 403);
     }
 
-    // remarks removed (not saved)
-    
-    return response()->json(['status'=>true,'message'=>'Order updated','data'=>$order]);
+     // ✅ Update other fields here (but NOT address)
+    $order->update($request->except(['address']));
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Order updated',
+        'data' => $order
+    ]);
 }
+
 
     // Cancel order with remark
 public function cancel(Request $request, $id)

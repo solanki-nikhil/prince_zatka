@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Models\UserProfile;
 
 class ProfileController extends Controller
 {
@@ -15,7 +16,8 @@ class ProfileController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'              => 'required|string|max:255',
-            'password'          => 'nullable|min:6|confirmed', // confirmed => needs password_confirmation field
+            'password'          => 'nullable|min:6|confirmed', 
+            'address'           => 'nullable|string|max:500',
         ], [
             'name.required'     => 'Enter Name',
             'password.confirmed'=> 'Password and Confirm Password do not match',
@@ -30,18 +32,27 @@ class ProfileController extends Controller
         }
 
         try {
+            // Update user table
             $user->name = $request->name;
-
             if ($request->filled('password')) {
                 $user->password = Hash::make($request->password);
             }
-
             $user->save();
+
+            // Update or create user profile
+            $profile = UserProfile::firstOrNew(['user_id' => $user->id]);
+            if ($request->filled('address')) {
+                $profile->address = $request->address;
+            }
+            $profile->save();
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Profile updated successfully',
-                'data'    => $user
+                'data'    => [
+                    'user'    => $user,
+                    'profile' => $profile
+                ]
             ], 200);
 
         } catch (\Exception $e) {

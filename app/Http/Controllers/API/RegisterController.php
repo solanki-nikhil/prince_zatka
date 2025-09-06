@@ -89,68 +89,75 @@ class RegisterController extends Controller
     
     // THIS IS API CODE
 
- public function signup(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name'         => 'required|string|max:255',
-            'mobile'       => 'required|numeric|digits:10|unique:users,mobile',
-            'country_id'   => 'required|integer',
-            // 'state_id'     => 'required|integer',
-            // 'city_id'      => 'required|integer',
-            'address'      => 'required|string|max:500',
-            'company_name' => 'required|string',
-            'gst'          => 'required|string',
-            'password'     => 'required|min:6',
+public function signup(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'name'         => 'required|string|max:255',
+        'mobile'       => 'required|numeric|digits:10|unique:users,mobile',
+        'country_id'   => 'required|integer',
+        'address'      => 'required|string|max:500',
+        'company_name' => 'required|string',
+        'gst'          => 'required|string',
+        'password'     => 'required|min:6',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Validation error',
+            'errors'  => $validator->errors()
+        ], 422);
+    }
+
+    DB::beginTransaction();
+    try {
+        // Create User
+        $user = User::create([
+            'name'     => $request->name,
+            'mobile'   => $request->mobile,
+            'email'    => $request->mobile . '@mail.com',
+            'password' => bcrypt($request->password),
+            'status'   => '0',
+            'otp'      => rand(100000, 999999),
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Validation error',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+        // Assign "customer" role
+        $user->assignRole('customer');
 
-        DB::beginTransaction();
-        try {
-            // Create User with profile using relationship
-            $user = User::create([
-                'name'     => $request->name,
-                'mobile'   => $request->mobile,
-                'email'    => $request->mobile . '@mail.com',
-                'password' => bcrypt($request->password),
-                'status'   => '0',
-                'otp'      => rand(100000, 999999),
-            ]);
+        // Save profile
+        $user->profile()->create([
+            'country_id'   => $request->country_id,
+            'address'      => $request->address,
+            'company_name' => $request->company_name,
+            'gst'          => $request->gst,
+            'address'          => $request->address,
+        ]);
 
-            // Save profile in one line using relationship
-            $user->profile()->create([
-                'country_id' => $request->country_id,
-                // 'state_id'   => $request->state_id,
-                // 'city_id'    => $request->city_id,
-                'address'    => $request->address,
-                'company_name'    => $request->company_name,
-                'gst'    => $request->gst,
-                'address'    => $request->address,
-            ]);
+        DB::commit();
 
-            DB::commit();
+        return response()->json([
+            'status'  => true,
+            'message' => 'User Registered Successfully',
+            'data'    => [
+                'id'     => $user->id,
+                'name'   => $user->name,
+                'mobile' => $user->mobile,
+                'email'  => $user->email,
+                'role'   => $user->getRoleNames()->first(),
+                'profile'=> $user->profile
+            ]
+        ], 201);
 
-            return response()->json([
-                'status'  => true,
-                'message' => 'User Registered Successfully',                                                                                                    
-                'data'    => $user->load('profile') // include profile in response
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status'  => false,
-                'message' => 'Something went wrong. Please try again.',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'status'  => false,
+            'message' => 'Something went wrong. Please try again.',
+            'error'   => $e->getMessage()
+        ], 500);
     }
+}
+
 
 
 public function login(Request $request)
@@ -175,17 +182,17 @@ public function login(Request $request)
     $user = User::where('mobile', $request->mobile)->first();
 
      // Check if user is active
-    // if ($user->status !== '1') {
-    //     return response()->json([
-    //         'status'  => false,
-    //         'message' => match($user->status) {
-    //             '0' => 'Your account is pending approval.',
-    //             '2' => 'Your account has been blocked.',
-    //             '3' => 'Your account has been rejected.',
-    //             default => 'Your account is not active.'
-    //         }
-    //     ], 403);
-    // }
+    if ($user->status !== '1') {
+        return response()->json([
+            'status'  => false,
+            'message' => match($user->status) {
+                '0' => 'Your account is pending approval.',
+                '2' => 'Your account has been blocked.',
+                '3' => 'Your account has been rejected.',
+                default => 'Your account is not active.'
+            }
+        ], 403);
+    }
 
     if (!$user) {
         return response()->json([
